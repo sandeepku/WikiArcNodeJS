@@ -47,9 +47,9 @@ By using the Esri [Terraformer](https://github.com/esri/terraformer) library's `
 
 ##Sample Data Providers
 ###WikiMapia
-WikiMapia is an amazing source for free available POI's and pooling the results like this greatly enhances the value of the data.
+WikiMapia is an amazing source for free available POI's and pooling the results in way, greatly enhances the value of the data.
 Wikimapia provides a REST API, which can be queried based on the geometry(envelope in my case) and exported as json.
-But, there is a limit set on the number of request that can be performed. For development purposes, teh limit is 100 request in a span of 5 minutes.
+But, there is a limit set to the number of request that can be performed. For development purposes, the limit is 100 request in a span of 5 minutes.
 
 ##Known Limitations
 * Only a limited subset of the [Geoservices REST Specification](http://resources.arcgis.com/en/help/arcgis-rest-api/) is implemented.
