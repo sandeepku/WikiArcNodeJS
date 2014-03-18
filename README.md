@@ -14,12 +14,12 @@ View a [live demo](http://www.arcgis.com/home/item.html?id=44b38d1abb514587a552f
 ##Introduction
 The application handles ArcGIS REST API requests to custom "data providers", and returns their output in ArcGIS JSON format.
 
-Here are two sample "data providers":
+Here is the data provider:
 
 * **WikiArcNodeJS**: Provide data from http://wikimapia.org/.
 
 
-The framework lets you build your own "data providers":
+The framework lets you build your own "data providers", again a concept which originated from the project Koop.
 
 1. Subclass `dataproviderbase.DataProviderBase`. Override only what you need to.
 2. Add instances of your subclass to the `dataProviders` array in `index.js`.
@@ -85,6 +85,12 @@ Find a bug or want to request a new feature?  Please let us know by submitting a
 ## Contributing
 
 Anyone and everyone is welcome to contribute. 
+
+
+## TODO
+* [MongoDB]Remove the hardcoding for the collection name, currently only supports "wikilocation" as the collection name.
+* [MongoDB]Optimize the mongodb to have a reader and a writer connection to optimize the read and write.
+
 
 ## Licensing
 Copyright 2013 Esri
