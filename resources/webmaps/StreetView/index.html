@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <title>Wiki Overlays within Street View</title>
+    <style>
+
+        html, body {
+            height: 100%;
+            margin: 0px;
+            padding: 0px
+        }
+        #streetview-canvas {
+            height: 70%;
+            margin: 0px;
+            padding: 0px
+        }
+        #map-canvas{
+            height: 30%;
+        }
+        #panel {
+            position: absolute;
+            top: 5px;
+            left: 50%;
+            margin-left: -180px;
+            z-index: 5;
+            background-color: #fff;
+            padding: 5px;
+            border: 1px solid #999;
+        }
+    </style>
+    <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=true"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+    <script>
+        var map, panorama, timeout;
+
+        //******************************marker handling
+        var markersArray = [];
+        function clearOverlays() {
+            for (var i = 0; i < markersArray.length; i++ ) {
+                markersArray[i].setMap(null);
+            }
+            markersArray.length = 0;
+        }
+        function insertMarker(geometry,id,info,title){
+            //check if the marker exist, if yes then no need to add it.
+            var foundmarker=false;
+
+            for (var i = 0; i < markersArray.length; i++ ) {
+                //console.log(markersArray[i].id);
+                if(markersArray[i].id==id){
+                    foundmarker=true;
+                }
+            }
+            if(!foundmarker){
+                var locationMarker = new google.maps.Marker({
+                    position: geometry,
+                    map: panorama,
+                    //draggable:true,
+                    //animation: google.maps.Animation.DROP,
+                    icon: "http://upload.wikimedia.org/wikipedia/en/thumb/0/02/Homer_Simpson_2006.png/212px-Homer_Simpson_2006.png",//"https://chart.googleapis.com/chart?chst=d_map_spin&chld=2.5|0|F51307|13|b|Wiki",//"http://alaframboise.github.io/presentations/esrigithub/images/esri-social-media-logo.jpeg",//"http://wikimapia.org/img/logo.gif",//http://wikimapia.org/img/mobile/logo.png" ,//"http://soulellis.com/wp-content/uploads/2012/12/esri_tagline_670.png",//"https://chart.googleapis.com/chart?chst=d_map_spin&chld=2|0|F51307|13|b|Wiki",//"https://chart.googleapis.com/chart?chst=d_fnote_title&chld=pinned_c|1|004400|l|Wiki|",
+                    id:id,
+                    title: title
+                });
+                //004400
+                //'https://chart.googleapis.com/chart?chst=d_bubble_icon_text_small&chld=ski|bb|Wheeee!|FFFFFF|000000',
+                //'http://chart.apis.google.com/chart?chst=d_map_pin_icon&chld=cafe|FFFF00'
+                var locationInfoWindow = new google.maps.InfoWindow({
+                    content: info
+                });
+                 google.maps.event.addListener(locationMarker, 'flat_changed', function() {
+                 locationInfoWindow.open(map,locationMarker);
+                 });
+
+                //console.log(locationMarker);
+                markersArray.push(locationMarker);
+            }
+
+        }
+        function deleteMarker(id){
+            for (var i = 0; i < markersArray.length; i++ ) {
+                if(markersArray[i].id==id){
+                    markersArray[i].setMap(null);
+                }
+            }
+        }
+        //end of marker functions***********************
+
+        function initialize() {
+          // Set up the map
+            var mapOptions = {
+                zoom: 18,
+                streetViewControl: true,
+                panControl: false,
+                zoomControl: true,
+                scaleControl: true
+            };
+            map = new google.maps.Map(document.getElementById('map-canvas'),
+                    mapOptions);
+
+            //Creates a street view panorama object.
+            var streetViewDiv = document.getElementById("streetview-canvas");
+            var streetViewOptions = {
+                position : new google.maps.LatLng(59.84867573875158,10.827871093749998) //dummy position
+            };
+            panorama = new google.maps.StreetViewPanorama(streetViewDiv, streetViewOptions);
+
+            //Connects with map object.
+            map.setStreetView(panorama);
+
+            //synchronizes map position with street view.
+            map.bindTo("center", panorama, "position");
+
+            // Try HTML5 geolocation
+            if(navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    var pos = new google.maps.LatLng(position.coords.latitude,position.coords.longitude);
+                    var infowindow = new google.maps.InfoWindow({
+                        map: map,
+                        position: pos,
+                        content: 'Your current location'
+                    });
+                    map.setCenter(pos);
+                    map.setZoom(18);
+                }, function() {
+                    handleNoGeolocation(true);
+
+                });
+            } else {
+                // Browser doesn't support Geolocation
+                handleNoGeolocation(false);
+            }
+            //event handler
+            google.maps.event.addListener(map, 'bounds_changed', bounds_changed);
+        }
+
+        function bounds_changed() {
+            window.clearTimeout(timeout);
+            timeout = window.setTimeout(function () {
+                //our ajax call to get the feature..
+                //{"ta":{"d":58.36067343759163,"b":62.25194229127541},"ga":{"b":-7.33612060546875,"d":27.82012939453125}}
+                var gBox=map.getBounds();
+                var esriBox={"xmin": gBox.ga.b,"ymin": gBox.ta.d,"xmax": gBox.ga.d,"ymax": gBox.ta.b,"spatialReference":{"wkid":4326}};
+                var data={returnGeometry: true, spatialRel: "esriSpatialRelIntersects", geometryType: "esriGeometryEnvelope", inSR: 4326, outFields: "*", outSR: 4326, geometry: esriBox}; //post variables
+                var postURL=url + "/query?f=json" + "&returnGeometry=true&spatialRel=esriSpatialRelIntersects&geometryType=esriGeometryEnvelope&inSR=4326&outFields=*&outSR=4326&geometry=" + JSON.stringify(esriBox);
+                $.ajax({
+                    url : postURL,
+                    type: "GET",
+                    success: function(data, textStatus, jqXHR)
+                    {
+                        if(data){
+                            var parsedData=data;
+                            if(parsedData.features){
+                                var features=parsedData.features;
+                                if(features){
+                                    for(var featureIndex=0;featureIndex<=features.length-1;featureIndex++)
+                                    {
+                                        if(features[featureIndex]){
+                                            var feature=features[featureIndex];
+                                            var geometry=feature.geometry;
+                                            var attributes=feature.attributes;
+                                            var locationgeom = new google.maps.LatLng(geometry.y, geometry.x);
+                                            var title,description;
+                                            if(!attributes.title){
+                                                title="Not defined";
+                                            }else{
+                                                title=attributes.title;
+                                            }
+                                            if(!attributes.description){
+                                                description="Not defined";
+                                            }else{
+                                                description=attributes.description;
+                                            }
+                                            // Setup the markers on the map
+                                            insertMarker(locationgeom,attributes.id,description,title);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        //data - response from server
+                    },
+                    error: function (jqXHR, textStatus, errorThrown)
+                    {
+                        console.log("error");
+                    }
+                });
+
+                //console.log(JSON.stringify(map.getBounds()));
+            }, 500);//delay put so tht we have some breather:)
+        }
+
+        function handleNoGeolocation(errorFlag) {
+            if (errorFlag) {
+                var content = 'Error: The Geolocation service failed.';
+            } else {
+                var content = 'Error: Your browser doesn\'t support geolocation.';
+            }
+
+            var options = {
+                map: map,
+                position: new google.maps.LatLng(10.827871093749998, 59.84867573875158),
+                content: content
+            };
+
+            var infowindow = new google.maps.InfoWindow(options);
+            map.setCenter(options.position);
+        }
+        google.maps.event.addDomListener(window, 'load', initialize);
+    </script>
+</head>
+<body>
+<div id="streetview-canvas"></div>
+<div id="map-canvas"></div>
+<script src="main.js"></script>
+</body>
+</html>
