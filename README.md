@@ -87,9 +87,9 @@ Find a bug or want to request a new feature?  Please let us know by submitting a
 Anyone and everyone is welcome to contribute. 
 
 
-## TODO
+## Todo
 * [MongoDB]Remove the hardcoding for the collection name, currently only supports "wikilocation" as the collection name.
-* [MongoDB]Optimize the mongodb to have a reader and a writer connection to optimize the read and write.
+* [MongoDB]Connection optimizer for the mongodb, have a seperate connection for reading and writing. As of now, this only has a single connection to one instance of the mongodb.
 
 
 ## Licensing
